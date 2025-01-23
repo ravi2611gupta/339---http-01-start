@@ -1,13 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Post } from './post.model';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
+import { Subject, throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PostService {
   constructor(private http: HttpClient) {}
+  error = new Subject<string>();
 
   createAndStorePost(title: string, content: string) {
     const postData: Post = { title, content };
@@ -16,9 +18,14 @@ export class PostService {
         'https://angular-339-default-rtdb.firebaseio.com/posts.json',
         postData
       )
-      .subscribe((responseData) => {
-        console.log(responseData);
-      });
+      .subscribe(
+        (responseData) => {
+          console.log(responseData);
+        },
+        (error) => {
+          this.error.next(error.message);
+        }
+      );
   }
 
   fetchPosts() {
@@ -36,6 +43,10 @@ export class PostService {
             }
           }
           return postArray;
+        }),
+        catchError((error) => {
+          // Send to analytics server
+          return throwError(error)
         })
       );
     //   .subscribe((posts: Post[]) => {});
